@@ -22,8 +22,7 @@ env/
 .claude/
 
 # ── Data (keep raw PDFs out of git by default) ───────────────────────────────
-data/index/
-data/pdf/
+data/
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 logs/
@@ -52,3 +51,6 @@ desktop.ini
 .pytest_cache/
 .coverage
 htmlcov/
+
+# ── pytest / coverage ────────────────────────────────────────────────────────
+doc_langchain_claudecode.txt
