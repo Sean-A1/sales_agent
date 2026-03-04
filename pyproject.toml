@@ -1,0 +1,69 @@
+[tool.poetry]
+name = "langchain-pdf-rag"
+version = "0.1.0"
+description = "Minimal LangChain PDF RAG (LlamaParse + Chroma + Claude)"
+authors = ["howca"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+
+# ---- Core (minimum to run) ----
+python-dotenv = "^1.0.0"
+pydantic = "^2.0.0"
+typer = "^0.15.0"
+rich = "^13.0.0"
+
+# LangChain (keep it small)
+langchain = "^0.3.0"
+langchain-community = "^0.3.0"
+
+# LLM: Claude (Anthropic)
+langchain-openai = ">=0.2.0,<0.4.0"
+openai = "^1.0.0"
+
+# Embeddings (local, simple)
+sentence-transformers = "^3.0.0"
+
+# Vector store (local persist)
+chromadb = "^0.5.0"
+langchain-chroma = "^0.1.0"
+
+# PDF parsing: primary + fallback
+llama-parse = "^0.5.0"
+llama-index-readers-file = "^0.2.0"
+pypdf = ">=4.2.0,<5.0.0"
+
+# Utilities
+tqdm = "^4.66.0"
+pyyaml = "^6.0.0"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.0"
+pytest = "^8.0.0"
+
+# ---- Optional groups (install when needed) ----
+[tool.poetry.group.eval.dependencies]
+ragas = "^0.4.3"
+datasets = "^4.5.0"
+langsmith = "^0.6.6"
+
+[tool.poetry.group.ui.dependencies]
+gradio = "^6.5.1"
+
+[tool.poetry.group.parsers.dependencies]
+pymupdf = "^1.24.0"
+unstructured = {extras = ["pdf"], version = "^0.18.27"}
+pdfplumber = "^0.11.9"
+pdf2image = "^1.17.0"
+pytesseract = "^0.3.13"
+
+[tool.pytest.ini_options]
+# Add project root to sys.path so "src.*" imports work without install
+pythonpath = ["."]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
