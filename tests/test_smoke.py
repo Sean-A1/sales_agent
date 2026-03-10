@@ -130,3 +130,15 @@ def test_format_chunks_for_display():
     assert "[1]" in output
     assert "doc.pdf" in output
     assert "Sample content" in output
+
+
+def test_format_chunks_no_ellipsis_for_short_content():
+    from langchain.schema import Document
+
+    from src.rag.utils import format_chunks_for_display
+
+    doc = Document(page_content="Short.", metadata={"source": "brief.pdf", "page": 0})
+    output = format_chunks_for_display([doc])
+    assert "brief.pdf" in output
+    assert "Short." in output
+    assert "…" not in output
