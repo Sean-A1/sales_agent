@@ -2,7 +2,7 @@
 
 Local PDF question-answering pipeline.
 Drop PDFs in `data/pdf/`, run `ingest`, then `query`.
-Works without an OpenAI key (returns raw retrieved chunks instead of an LLM answer).
+Works without an RAG_OPENAI_API_KEY (returns raw retrieved chunks instead of an LLM answer).
 
 ---
 
@@ -21,12 +21,14 @@ Works without an OpenAI key (returns raw retrieved chunks instead of an LLM answ
 
 ## Installation
 
-```powershell
-# 1. Install dependencies
-poetry install
+This project is developed inside WSL.
 
-# 2. Activate the virtual environment
-poetry shell
+```bash
+# If needed, point Poetry to Python 3.11 first
+poetry env use /home/laptop_wsl/.local/bin/python3.11
+
+# Install dependencies
+poetry install
 ```
 
 ---
@@ -47,18 +49,18 @@ Full list of overridable settings is in `.env.example`.
 
 ---
 
-## Usage (Windows PowerShell)
+## Usage (WSL / bash)
 
 ### 1. Place PDFs
 
-```powershell
+```bash
 # PDFs are already in the repo sample folder, or add your own:
-Copy-Item "C:\my-docs\report.pdf" data\pdf\
+cp /path/to/report.pdf data/pdf/
 ```
 
 ### 2. Ingest (first time or after adding new PDFs)
 
-```powershell
+```bash
 # Normal ingest (adds to existing index)
 python main.py ingest
 
@@ -68,16 +70,14 @@ python main.py ingest --reset
 
 Output example:
 ```
-[ingest] Found 10 PDF file(s) in data\pdf
-  01_NPS_RFP_Sample.pdf: 12 page(s) → 47 chunk(s)
-  ...
-[ingest] Total: 10 file(s), 98 page(s), 382 chunk(s)
-[ingest] Done. Index persisted at data\index
+[ingest] Found 10 PDF file(s) in data/pdf
+...
+[ingest] Done. Index persisted at data/index
 ```
 
 ### 3. Query
 
-```powershell
+```bash
 # Basic query (LLM answer if RAG_OPENAI_API_KEY is set)
 python main.py query "사업의 주요 요구사항은 무엇인가요?"
 
@@ -135,7 +135,7 @@ This is useful for:
 
 ## Running tests
 
-```powershell
+```bash
 poetry run pytest tests/ -v
 ```
 
@@ -162,7 +162,7 @@ ValueError: LLAMAPARSE_API_KEY / LLAMA_CLOUD_API_KEY not set
 
 ### Index not found
 ```
-[error] Index not found at data\index. Run 'python main.py ingest' first.
+[error] Index not found at data/index. Run 'python main.py ingest' first.
 ```
 → Run `python main.py ingest` at least once before querying.
 
@@ -173,3 +173,16 @@ ValueError: LLAMAPARSE_API_KEY / LLAMA_CLOUD_API_KEY not set
 ### Chroma / embedding first run is slow
 → `sentence-transformers` downloads the model weights on first use (~90 MB).
    Subsequent runs use the cached model from `~/.cache/huggingface/`.
+
+
+### Poetry rejects the current Python version
+
+This project currently requires Python `>=3.11,<3.12`.
+
+On Ubuntu 24.04 / WSL, the default system Python may be 3.12.
+If needed, install Python 3.11 separately and point Poetry to it:
+
+```bash
+poetry env use /home/laptop_wsl/.local/bin/python3.11
+poetry install
+```
