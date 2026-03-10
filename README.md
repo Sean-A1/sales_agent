@@ -173,3 +173,19 @@ ValueError: LLAMAPARSE_API_KEY / LLAMA_CLOUD_API_KEY not set
 ### Chroma / embedding first run is slow
 → `sentence-transformers` downloads the model weights on first use (~90 MB).
    Subsequent runs use the cached model from `~/.cache/huggingface/`.
+
+---
+
+## Development workflow
+
+This project is developed inside WSL (`~/projects/langchain_agent`).
+All CLI agent work runs from there; Cursor connects via WSL Remote.
+
+Each coding agent works on an isolated branch — never directly on `main`:
+```
+claude/<task-name>
+codex/<task-name>
+gemini/<task-name>
+```
+
+Start every session from `main` (`git pull`), create a fresh agent branch, then open a PR when done.
