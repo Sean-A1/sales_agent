@@ -20,7 +20,7 @@ from rich.console import Console
 app = typer.Typer(
     name="rag",
     add_completion=False,
-    help="PDF RAG CLI — LlamaParse + Chroma + OpenAI",
+    help="PDF processing CLI — ingest, query, and convert",
 )
 console = Console()
 
@@ -103,6 +103,54 @@ def query(
         max_chunk_chars=max_chars or cfg.MAX_CHUNK_CHARS,
         max_context_chunks=max_chunks or cfg.MAX_CONTEXT_CHUNKS,
         truncate_question=not no_truncate,
+    )
+
+
+# ---------------------------------------------------------------------------
+# convert command
+# ---------------------------------------------------------------------------
+
+@app.command()
+def convert(
+    input_dir: Path = typer.Option(
+        None,
+        "--input-dir",
+        help="Source PDF directory  [default: data/input/pdf]",
+    ),
+    output_dir: Path = typer.Option(
+        None,
+        "--output-dir",
+        help="Export root directory  [default: data/export/<run-name>]",
+    ),
+    profile: str = typer.Option(
+        None,
+        "--profile",
+        help="Conversion profile name  [default: financial_rfp]",
+    ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        is_flag=True,
+        help="Save intermediate artifacts (raw md, clean md, metadata, logs)",
+    ),
+) -> None:
+    """Convert PDFs → md, html, xml, json using a named conversion profile."""
+    import datetime
+    from src.convert import config as ccfg
+    from src.convert.pipeline import run_convert
+
+    resolved_input  = input_dir  or ccfg.CONVERT_INPUT_DIR
+    resolved_output = output_dir or (
+        ccfg.CONVERT_EXPORT_DIR
+        / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    )
+    resolved_profile = profile or ccfg.DEFAULT_PROFILE
+
+    run_convert(
+        input_dir=resolved_input,
+        output_dir=resolved_output,
+        profile_name=resolved_profile,
+        debug=debug,
     )
 
 

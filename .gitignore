@@ -21,8 +21,14 @@ env/
 # ── Claude Code (local agent state) ──────────────────────────────────────────
 .claude/
 
-# ── Data (keep raw PDFs out of git by default) ───────────────────────────────
-data/
+# generated / local data
+data/index/
+data/pdf_temp/
+data/export/
+
+# conversion input: keep scaffold only, ignore actual PDFs
+data/input/pdf/*
+!data/input/pdf/.gitkeep
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 logs/
