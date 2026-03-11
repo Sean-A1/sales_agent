@@ -1,12 +1,13 @@
 """
-Conversion pipeline — Phase 2: parse + clean + md export.
+Conversion pipeline — Phase 3: parse + clean + metadata + md export.
 
 Stages:
   1. Resolve profile (financial_rfp only for now)
   2. Discover PDFs in input_dir
   3. Parse with LlamaParse (one shared parser instance for the batch)
   4. Clean each raw markdown via the profile's normalisation rules
-  5. Write cleaned markdown to output_dir/md/<stem>.md
+  5. Extract metadata via a single LLM call per document
+  6. Write cleaned markdown (with YAML frontmatter) to output_dir/md/<stem>.md
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from rich.console import Console
 
 from . import config as cfg
 from .clean import clean_markdown
+from .metadata import extract_metadata, metadata_to_yaml_frontmatter
 from .parse import parse_pdfs
 from .profiles import get_profile
 
@@ -58,6 +60,16 @@ def run_convert(
     md_dir = output_dir / "md"
     md_dir.mkdir(parents=True, exist_ok=True)
 
+    # 6. Metadata: check whether we can make LLM calls
+    can_extract_metadata = bool(
+        cfg.CONVERT_OPENAI_API_KEY and profile.metadata_schema
+    )
+    if not can_extract_metadata and profile.metadata_schema:
+        console.print(
+            "[yellow]Warning:[/yellow] CONVERT_OPENAI_API_KEY / RAG_OPENAI_API_KEY "
+            "not set — skipping metadata extraction."
+        )
+
     written = 0
     for pdf_path, raw_md in raw_mds.items():
         cleaned = clean_markdown(raw_md, profile)
@@ -66,8 +78,20 @@ def run_convert(
                 f"  [yellow]skip[/yellow] {pdf_path.name} — cleaning produced empty output"
             )
             continue
+
+        # 6b. Extract metadata and prepend as YAML frontmatter
+        frontmatter = ""
+        if can_extract_metadata:
+            console.print(f"  extracting metadata for [cyan]{pdf_path.name}[/cyan] …")
+            metadata = extract_metadata(
+                cleaned, profile, cfg.CONVERT_OPENAI_API_KEY, model=cfg.OPENAI_MODEL,
+            )
+            frontmatter = metadata_to_yaml_frontmatter(metadata)
+
+        body = f"{frontmatter}\n\n{cleaned}" if frontmatter else cleaned
+
         out_path = md_dir / f"{pdf_path.stem}.md"
-        out_path.write_text(cleaned, encoding="utf-8")
+        out_path.write_text(body, encoding="utf-8")
         console.print(f"  [green]wrote[/green] {out_path}")
         written += 1
 
