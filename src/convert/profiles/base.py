@@ -34,6 +34,9 @@ class ConversionProfile:
     # Reconstitute the institution name into the H1 title when LlamaParse
     # splits "기관: <name>" onto a separate line after the heading.
     reconstitute_title_institution: bool = False
+    # Fix Clause ID lines ([XXX-N.N]) that LlamaParse incorrectly promotes
+    # to H1 headings, and list items that get turned into headings.
+    fix_clause_id_headings: bool = False
 
     # -----------------------------------------------------------------------
     # Metadata stage — single LLM sandwich call

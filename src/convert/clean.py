@@ -22,6 +22,11 @@ _HEADER_KV_RE = re.compile(
     r"^([가-힣A-Za-z\s/()·\d]+\S):\s*(.+)$",
 )
 
+# Standalone Clause ID heading: # [PREFIX-N.N] or # [PREFIX-N.N.N]
+_CLAUSE_ID_HEADING_RE = re.compile(r"^# (\[[A-Z]+-[\d.]+\])\s*$")
+# Numbered section heading that should be preserved: # 1. Title, # 부록 A.
+_NUMBERED_SECTION_RE = re.compile(r"^# (?:\d+\.|부록)")
+
 
 def _reconstitute_title_institution(text: str) -> str:
     """Prepend institution name to the first H1 if split into a '기관:' line."""
@@ -82,6 +87,62 @@ def _convert_header_kvs_to_table(text: str) -> str:
     return text[:after_h1] + "\n\n" + table_str + "\n\n" + remaining[consumed:]
 
 
+def _fix_clause_id_headings(text: str) -> str:
+    """Fix Clause ID lines that LlamaParse incorrectly promoted to H1 headings.
+
+    Pattern 1 – standalone ``# [CLAUSE-ID]`` heading:
+        Merge the clause ID prefix with the next non-empty, non-heading line.
+    Pattern 2 – heading within a list-item context:
+        If a non-numbered ``# text`` line appears right after list items,
+        demote it back to a list item (the original formatting).
+    """
+    lines = text.split("\n")
+    out: list[str] = []
+    i = 0
+    n = len(lines)
+
+    while i < n:
+        stripped = lines[i].strip()
+
+        # --- Pattern 1: # [CLAUSE-ID] standalone → merge with next text ---
+        m = _CLAUSE_ID_HEADING_RE.match(stripped)
+        if m:
+            clause_id = m.group(1)
+            # Find the next non-empty line
+            j = i + 1
+            while j < n and not lines[j].strip():
+                j += 1
+            if j < n and not lines[j].strip().startswith("#"):
+                out.append(f"{clause_id} {lines[j].strip()}")
+                i = j + 1
+            else:
+                # Next line is a heading or EOF — just remove the '#'
+                out.append(clause_id)
+                i += 1
+            continue
+
+        # --- Pattern 2: heading right after list items → demote to list item ---
+        if (
+            stripped.startswith("# ")
+            and not _NUMBERED_SECTION_RE.match(stripped)
+        ):
+            # Find the last non-empty line in output
+            prev = ""
+            for k in range(len(out) - 1, -1, -1):
+                if out[k].strip():
+                    prev = out[k].strip()
+                    break
+            if prev.startswith("- "):
+                out.append(f"- {stripped[2:]}")
+                i += 1
+                continue
+
+        out.append(lines[i])
+        i += 1
+
+    return "\n".join(out)
+
+
 def clean_markdown(raw_md: str, profile: ConversionProfile) -> str:
     """Return cleaned markdown according to the profile's normalisation rules."""
     text = raw_md
@@ -107,7 +168,11 @@ def clean_markdown(raw_md: str, profile: ConversionProfile) -> str:
     if profile.preserve_table_blocks:
         text = _convert_header_kvs_to_table(text)
 
-    # 5. Collapse runs of 3+ blank lines to 2 blank lines.
+    # 5. Fix Clause ID headings promoted by LlamaParse.
+    if profile.fix_clause_id_headings:
+        text = _fix_clause_id_headings(text)
+
+    # 6. Collapse runs of 3+ blank lines to 2 blank lines.
     #    preserve_table_blocks is respected implicitly: markdown table rows
     #    (lines starting with "|") never contain internal blank lines, so
     #    standard 3→2 collapsing does not disturb table formatting.

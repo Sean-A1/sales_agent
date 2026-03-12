@@ -167,6 +167,82 @@ def test_header_kvs_single_kv_not_converted(profile):
 # table content is not disturbed
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# fix_clause_id_headings
+# ---------------------------------------------------------------------------
+
+def test_clause_id_heading_merged_with_next_line(profile):
+    """# [CLAUSE-ID] standalone heading → merge with following paragraph."""
+    md = (
+        "# 4. 책임투자(ESG)\n\n"
+        "# [ESG-4.3]\n\n"
+        "배제 기준 위반이 확인되는 경우 시정계획을 제출해야 합니다."
+    )
+    result = clean_markdown(md, profile)
+    assert "# [ESG-4.3]" not in result
+    assert "[ESG-4.3] 배제 기준 위반이 확인되는 경우" in result
+    # Legitimate heading preserved
+    assert "# 4. 책임투자(ESG)" in result
+
+
+def test_multiple_clause_id_headings_fixed(profile):
+    """Multiple standalone Clause ID headings are all fixed."""
+    md = (
+        "# 5. 평가 기준\n\n"
+        "# [EVAL-5.1]\n\n"
+        "평가는 총 100점 만점입니다.\n\n"
+        "# [EVAL-5.3]\n\n"
+        "필요 시 인터뷰를 요청할 수 있습니다."
+    )
+    result = clean_markdown(md, profile)
+    assert "[EVAL-5.1] 평가는 총 100점 만점입니다." in result
+    assert "[EVAL-5.3] 필요 시 인터뷰를 요청할 수 있습니다." in result
+    assert "# 5. 평가 기준" in result
+
+
+def test_heading_after_list_items_demoted(profile):
+    """A heading appearing right after list items is demoted to list item."""
+    md = (
+        "- [EXCL-4.2.3] 중대 환경오염 기업\n"
+        "- [EXCL-4.2.4] 아동노동 확인된 기업\n\n"
+        "# 국제 제재 위반 리스크가 높은 기업\n\n"
+        "# [ESG-4.3]\n\n"
+        "배제 기준 위반이 확인되는 경우 시정계획 제출."
+    )
+    result = clean_markdown(md, profile)
+    # Heading demoted to list item
+    assert "- 국제 제재 위반 리스크가 높은 기업" in result
+    assert "# 국제 제재" not in result
+    # Clause ID heading merged with text
+    assert "[ESG-4.3] 배제 기준 위반이 확인되는 경우" in result
+
+
+def test_numbered_section_headings_preserved(profile):
+    """Numbered section headings (# 1. Title) are never demoted."""
+    md = (
+        "- [DOC-3.3.8] 최근 3년 제재 내역\n\n"
+        "# 4. 책임투자(ESG) 및 배제/금지 조건\n\n"
+        "[ESG-4.1] 운용사는 ESG 리스크를 통합해야 합니다."
+    )
+    result = clean_markdown(md, profile)
+    assert "# 4. 책임투자(ESG) 및 배제/금지 조건" in result
+
+
+def test_appendix_heading_preserved(profile):
+    """부록 headings are preserved."""
+    md = (
+        "- [DEL-6.2.5] ESG 관여 로그\n\n"
+        "# 부록 A. 제안서 응답 템플릿\n\n"
+        "내용"
+    )
+    result = clean_markdown(md, profile)
+    assert "# 부록 A. 제안서 응답 템플릿" in result
+
+
+# ---------------------------------------------------------------------------
+# table content is not disturbed
+# ---------------------------------------------------------------------------
+
 def test_table_rows_preserved(profile):
     md = (
         "| Col A | Col B |\n"

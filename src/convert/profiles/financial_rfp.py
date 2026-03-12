@@ -55,6 +55,7 @@ financial_rfp = ConversionProfile(
     fix_hyphenation=True,
     preserve_table_blocks=True,
     reconstitute_title_institution=True,
+    fix_clause_id_headings=True,
 
     # -----------------------------------------------------------------------
     # Metadata
