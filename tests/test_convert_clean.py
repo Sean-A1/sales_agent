@@ -121,14 +121,46 @@ def test_reconstitute_title_institution(profile):
     assert result.startswith(
         "# 국민연금 기금운용본부(가상) | 국내주식 액티브(장기성장형) 위탁운용사 선정 위탁운용사 RFP"
     )
-    # The "기관:" line should still be present
-    assert "기관: 국민연금 기금운용본부(가상)" in result
+    # The "기관" data should be preserved in the markdown table
+    assert "| 기관 | 국민연금 기금운용본부(가상) |" in result
 
 
 def test_reconstitute_title_no_institution_line(profile):
     md = "# Already Complete Title\n\nSome body text."
     result = clean_markdown(md, profile)
     assert result.startswith("# Already Complete Title")
+
+
+# ---------------------------------------------------------------------------
+# header key-value → markdown table
+# ---------------------------------------------------------------------------
+
+def test_header_kvs_converted_to_table(profile):
+    md = (
+        "# 위탁운용사 RFP\n\n"
+        "기관: 국민연금\n\n"
+        "선정 목적: 위탁운용사 선정\n\n"
+        "투자 유형: 국내주식\n\n"
+        "예상 위탁규모: 3,000억원\n\n"
+        "# 1. 개요\n\nBody text."
+    )
+    result = clean_markdown(md, profile)
+    assert "| 항목 | 내용 |" in result
+    assert "| 기관 | 국민연금 |" in result
+    assert "| 선정 목적 | 위탁운용사 선정 |" in result
+    assert "| 투자 유형 | 국내주식 |" in result
+    assert "| 예상 위탁규모 | 3,000억원 |" in result
+    # Body after the KV block should be preserved
+    assert "# 1. 개요" in result
+    assert "Body text." in result
+
+
+def test_header_kvs_single_kv_not_converted(profile):
+    """A single key-value line should NOT be converted into a table."""
+    md = "# Title\n\n기관: 국민연금\n\n# 1. 개요"
+    result = clean_markdown(md, profile)
+    # With reconstitute on, 기관 merges into H1; only 1 KV → no table
+    assert "| 항목 |" not in result
 
 
 # ---------------------------------------------------------------------------
