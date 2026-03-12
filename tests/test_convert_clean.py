@@ -107,6 +107,34 @@ def test_strips_leading_trailing_whitespace(profile):
 # table content is not disturbed
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# reconstitute_title_institution
+# ---------------------------------------------------------------------------
+
+def test_reconstitute_title_institution(profile):
+    md = (
+        "# 국내주식 액티브(장기성장형) 위탁운용사 선정 위탁운용사 RFP\n\n"
+        "기관: 국민연금 기금운용본부(가상)\n\n"
+        "선정 목적: 위탁운용사 선정"
+    )
+    result = clean_markdown(md, profile)
+    assert result.startswith(
+        "# 국민연금 기금운용본부(가상) | 국내주식 액티브(장기성장형) 위탁운용사 선정 위탁운용사 RFP"
+    )
+    # The "기관:" line should still be present
+    assert "기관: 국민연금 기금운용본부(가상)" in result
+
+
+def test_reconstitute_title_no_institution_line(profile):
+    md = "# Already Complete Title\n\nSome body text."
+    result = clean_markdown(md, profile)
+    assert result.startswith("# Already Complete Title")
+
+
+# ---------------------------------------------------------------------------
+# table content is not disturbed
+# ---------------------------------------------------------------------------
+
 def test_table_rows_preserved(profile):
     md = (
         "| Col A | Col B |\n"

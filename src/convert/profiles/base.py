@@ -31,6 +31,9 @@ class ConversionProfile:
     fix_hyphenation: bool = True
     # Prevent whitespace normalization inside fenced table blocks.
     preserve_table_blocks: bool = True
+    # Reconstitute the institution name into the H1 title when LlamaParse
+    # splits "기관: <name>" onto a separate line after the heading.
+    reconstitute_title_institution: bool = False
 
     # -----------------------------------------------------------------------
     # Metadata stage — single LLM sandwich call
