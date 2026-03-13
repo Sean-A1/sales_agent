@@ -146,6 +146,14 @@ def convert(
     )
     resolved_profile = profile or ccfg.DEFAULT_PROFILE
 
+    # Validate profile name before entering the pipeline
+    from src.convert.profiles import get_profile
+    try:
+        get_profile(resolved_profile)
+    except ValueError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(code=1)
+
     run_convert(
         input_dir=resolved_input,
         output_dir=resolved_output,
