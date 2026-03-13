@@ -37,6 +37,8 @@ class ConversionProfile:
     # Fix Clause ID lines ([XXX-N.N]) that LlamaParse incorrectly promotes
     # to H1 headings, and list items that get turned into headings.
     fix_clause_id_headings: bool = False
+    # Convert image tags (![alt](url)) to text placeholders ([IMAGE: alt]).
+    convert_image_tags: bool = False
 
     # -----------------------------------------------------------------------
     # Metadata stage — single LLM sandwich call

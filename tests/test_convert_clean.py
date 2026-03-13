@@ -10,11 +10,22 @@ import pytest
 
 from src.convert.clean import clean_markdown
 from src.convert.profiles import get_profile
+from src.convert.profiles.base import ConversionProfile
 
 
 @pytest.fixture()
 def profile():
     return get_profile("financial_rfp")
+
+
+@pytest.fixture()
+def image_profile():
+    """Profile with convert_image_tags enabled."""
+    return ConversionProfile(
+        name="test_image",
+        llamaparse_instructions="",
+        convert_image_tags=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +248,53 @@ def test_appendix_heading_preserved(profile):
     )
     result = clean_markdown(md, profile)
     assert "# 부록 A. 제안서 응답 템플릿" in result
+
+
+# ---------------------------------------------------------------------------
+# table content is not disturbed
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# convert_image_tags
+# ---------------------------------------------------------------------------
+
+def test_image_tag_with_alt_text(image_profile):
+    """![alt](url) → [IMAGE: alt]"""
+    md = "Some text.\n\n![차트 설명](https://example.com/chart.png)\n\nMore text."
+    result = clean_markdown(md, image_profile)
+    assert "[IMAGE: 차트 설명]" in result
+    assert "![" not in result
+    assert "https://example.com" not in result
+
+
+def test_image_tag_without_alt_text(image_profile):
+    """![](url) → [IMAGE: (설명 없음)]"""
+    md = "Before.\n\n![](https://example.com/img.png)\n\nAfter."
+    result = clean_markdown(md, image_profile)
+    assert "[IMAGE: (설명 없음)]" in result
+    assert "![" not in result
+
+
+def test_empty_link_removed(image_profile):
+    """[](url) → removed"""
+    md = "Text [](https://example.com/ref) here."
+    result = clean_markdown(md, image_profile)
+    assert "[](https://example.com/ref)" not in result
+    assert "Text  here." in result
+
+
+def test_no_image_tags_unchanged(image_profile):
+    """Document without image tags passes through unchanged."""
+    md = "# Title\n\nPlain text content."
+    result = clean_markdown(md, image_profile)
+    assert result == "# Title\n\nPlain text content."
+
+
+def test_image_tags_not_converted_when_flag_off(profile):
+    """financial_rfp profile has convert_image_tags=False; images left as-is."""
+    md = "![chart](https://example.com/img.png)"
+    result = clean_markdown(md, profile)
+    assert "![chart](https://example.com/img.png)" in result
 
 
 # ---------------------------------------------------------------------------

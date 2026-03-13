@@ -143,6 +143,33 @@ def _fix_clause_id_headings(text: str) -> str:
     return "\n".join(out)
 
 
+_IMAGE_TAG_RE = re.compile(r"!\[([^\]]*)\]\([^)]+\)")
+_EMPTY_LINK_RE = re.compile(r"\[]\([^)]+\)")
+
+
+def _convert_image_tags(text: str) -> str:
+    """Replace image tags with text placeholders and remove empty links.
+
+    - ``![alt text](url)`` → ``[IMAGE: alt text]``
+    - ``![](url)`` → ``[IMAGE: (설명 없음)]``
+    - ``[](url)`` → removed
+    """
+    # Convert image tags first (before empty link removal, since ![](url)
+    # would otherwise match the empty link pattern).
+    def _replace(m: re.Match) -> str:
+        alt = m.group(1).strip()
+        if not alt:
+            return "[IMAGE: (설명 없음)]"
+        return f"[IMAGE: {alt}]"
+
+    text = _IMAGE_TAG_RE.sub(_replace, text)
+
+    # Remove empty links
+    text = _EMPTY_LINK_RE.sub("", text)
+
+    return text
+
+
 def clean_markdown(raw_md: str, profile: ConversionProfile) -> str:
     """Return cleaned markdown according to the profile's normalisation rules."""
     text = raw_md
@@ -172,7 +199,11 @@ def clean_markdown(raw_md: str, profile: ConversionProfile) -> str:
     if profile.fix_clause_id_headings:
         text = _fix_clause_id_headings(text)
 
-    # 6. Collapse runs of 3+ blank lines to 2 blank lines.
+    # 6. Convert image tags to text placeholders.
+    if profile.convert_image_tags:
+        text = _convert_image_tags(text)
+
+    # 7. Collapse runs of 3+ blank lines to 2 blank lines.
     #    preserve_table_blocks is respected implicitly: markdown table rows
     #    (lines starting with "|") never contain internal blank lines, so
     #    standard 3→2 collapsing does not disturb table formatting.
