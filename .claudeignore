@@ -1,0 +1,44 @@
+# ── Binary / Generated ────────────────────────────────────────────────────────
+poetry.lock
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Test / Build cache ────────────────────────────────────────────────────────
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+htmlcov/
+.coverage
+
+# ── Data: binary assets (PDFs, vector index, DB) ─────────────────────────────
+data/index/
+data/pdf_temp/
+*.sqlite3
+
+# ── Data: pipeline output (regenerable) ──────────────────────────────────────
+data/export/
+
+# ── Secrets / Environment ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.gitattributes
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Legacy AI agent notes (not needed for code work) ─────────────────────────
+# memory/CODEX.md
+# memory/GEMINI.md
+# memory/CLAUDE.md
