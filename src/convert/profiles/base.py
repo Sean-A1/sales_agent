@@ -41,6 +41,14 @@ class ConversionProfile:
     convert_image_tags: bool = False
 
     # -----------------------------------------------------------------------
+    # Parse stage — premium mode
+    # -----------------------------------------------------------------------
+    # Enable LlamaParse premium_mode for image-heavy documents.
+    premium_mode: bool = False
+    # System prompt passed as content_guideline_instruction in premium_mode.
+    llamaparse_system_prompt: str = ""
+
+    # -----------------------------------------------------------------------
     # Metadata stage — single LLM sandwich call
     # -----------------------------------------------------------------------
     # Maps field name → plain-English description used in the LLM prompt.

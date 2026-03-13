@@ -25,12 +25,20 @@ def parse_pdfs(
     """Parse a batch of PDFs with LlamaParse; return {pdf_path: raw_markdown}."""
     from llama_parse import LlamaParse  # deferred so import errors surface clearly
 
-    parser = LlamaParse(
+    parser_kwargs: dict = dict(
         api_key=api_key,
         result_type="markdown",
         system_prompt=profile.llamaparse_instructions,
         verbose=debug,
     )
+    if profile.premium_mode:
+        parser_kwargs["premium_mode"] = True
+        if profile.llamaparse_system_prompt:
+            parser_kwargs["content_guideline_instruction"] = (
+                profile.llamaparse_system_prompt
+            )
+
+    parser = LlamaParse(**parser_kwargs)
 
     results: dict[Path, str] = {}
     for pdf_path in pdf_paths:

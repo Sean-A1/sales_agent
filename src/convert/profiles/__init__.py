@@ -1,8 +1,10 @@
 from .base import ConversionProfile
 from .financial_rfp import financial_rfp
+from .manufacturing import manufacturing
 
 _REGISTRY: dict[str, ConversionProfile] = {
     "financial_rfp": financial_rfp,
+    "manufacturing": manufacturing,
 }
 
 
