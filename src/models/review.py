@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel
+from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
 
@@ -16,7 +17,10 @@ class Review(SQLModel, table=True):
     rating: int = Field(ge=1, le=5)
     content: str = Field(default="")
     author: str = Field(max_length=100)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class ReviewCreate(BaseModel):

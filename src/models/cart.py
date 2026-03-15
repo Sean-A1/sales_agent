@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel
+from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
 
@@ -15,7 +16,10 @@ class CartItem(SQLModel, table=True):
     session_id: str = Field(max_length=200, index=True)
     product_id: int = Field(foreign_key="products.id", index=True)
     quantity: int = Field(ge=1, default=1)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class CartItemCreate(BaseModel):

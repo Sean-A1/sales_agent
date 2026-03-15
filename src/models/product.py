@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel
+from sqlalchemy import DateTime
 from sqlmodel import JSON, Column, Field, SQLModel
 
 
@@ -20,8 +21,14 @@ class Product(SQLModel, table=True):
     stock: int = Field(default=0, ge=0)
     image_url: str = Field(default="")
     specs: dict | None = Field(default=None, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class ProductCreate(BaseModel):

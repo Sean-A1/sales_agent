@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel
+from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
 
@@ -25,8 +26,14 @@ class Order(SQLModel, table=True):
     user_id: str = Field(max_length=100, index=True)
     status: OrderStatus = Field(default=OrderStatus.PENDING)
     total_price: int = Field(ge=0, description="총 금액 (원)")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class OrderItem(SQLModel, table=True):
