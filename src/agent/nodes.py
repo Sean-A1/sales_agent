@@ -7,11 +7,18 @@ from sqlmodel import select
 
 from src.core import get_logger
 from src.db import get_engine, get_session
-from src.graph import get_driver, execute_query, get_related_products, get_session_context
+from src.graph import (
+    get_driver,
+    execute_query,
+    get_related_products,
+    get_session_context,
+)
 from src.models import Product, CartItem, Order, OrderItem
 from src.rag import get_qdrant_client, get_embedder, search_reviews, search_qna
 
 from .state import AgentState
+
+from src.core import get_logger, get_settings
 
 logger = get_logger(__name__)
 
@@ -21,15 +28,22 @@ async def search_node(state: AgentState) -> AgentState:
     query = state.get("context", {}).get("query") or _last_user_message(state)
     engine = get_engine()
     async for session in get_session(engine):
-        stmt = select(Product).where(
-            Product.name.contains(query) | Product.category.contains(query)
-        ).limit(10)
+        stmt = (
+            select(Product)
+            .where(Product.name.contains(query) | Product.category.contains(query))
+            .limit(10)
+        )
         result = await session.exec(stmt)
         products = list(result.all())
 
     items = [
-        {"id": p.id, "name": p.name, "category": p.category,
-         "price": p.price, "stock": p.stock}
+        {
+            "id": p.id,
+            "name": p.name,
+            "category": p.category,
+            "price": p.price,
+            "stock": p.stock,
+        }
         for p in products
     ]
     return {**state, "result": {"type": "search", "products": items}}
@@ -70,14 +84,20 @@ async def detail_node(state: AgentState) -> AgentState:
     """Get product detail by ID extracted from context."""
     product_id = state.get("context", {}).get("product_id")
     if not product_id:
-        return {**state, "result": {"type": "detail", "error": "상품 ID를 찾을 수 없습니다."}}
+        return {
+            **state,
+            "result": {"type": "detail", "error": "상품 ID를 찾을 수 없습니다."},
+        }
 
     engine = get_engine()
     async for session in get_session(engine):
         product = await session.get(Product, int(product_id))
 
     if not product:
-        return {**state, "result": {"type": "detail", "error": "상품을 찾을 수 없습니다."}}
+        return {
+            **state,
+            "result": {"type": "detail", "error": "상품을 찾을 수 없습니다."},
+        }
 
     return {
         **state,
@@ -101,14 +121,20 @@ async def stock_node(state: AgentState) -> AgentState:
     """Check stock and price for a product."""
     product_id = state.get("context", {}).get("product_id")
     if not product_id:
-        return {**state, "result": {"type": "stock", "error": "상품 ID를 찾을 수 없습니다."}}
+        return {
+            **state,
+            "result": {"type": "stock", "error": "상품 ID를 찾을 수 없습니다."},
+        }
 
     engine = get_engine()
     async for session in get_session(engine):
         product = await session.get(Product, int(product_id))
 
     if not product:
-        return {**state, "result": {"type": "stock", "error": "상품을 찾을 수 없습니다."}}
+        return {
+            **state,
+            "result": {"type": "stock", "error": "상품을 찾을 수 없습니다."},
+        }
 
     return {
         **state,
@@ -132,12 +158,16 @@ async def review_node(state: AgentState) -> AgentState:
     embedder = get_embedder()
 
     reviews = search_reviews(
-        client, embedder, query,
+        client,
+        embedder,
+        query,
         product_id=int(product_id) if product_id else None,
         limit=5,
     )
     qna = search_qna(
-        client, embedder, query,
+        client,
+        embedder,
+        query,
         product_id=int(product_id) if product_id else None,
         limit=3,
     )
@@ -181,10 +211,7 @@ async def cart_node(state: AgentState) -> AgentState:
         result = await session.exec(stmt)
         items = list(result.all())
 
-    cart = [
-        {"product_id": i.product_id, "quantity": i.quantity}
-        for i in items
-    ]
+    cart = [{"product_id": i.product_id, "quantity": i.quantity} for i in items]
     return {**state, "result": {"type": "cart", "action": "list", "items": cart}}
 
 
@@ -192,14 +219,20 @@ async def order_track_node(state: AgentState) -> AgentState:
     """Track order status."""
     order_id = state.get("context", {}).get("order_id")
     if not order_id:
-        return {**state, "result": {"type": "order_track", "error": "주문 ID를 찾을 수 없습니다."}}
+        return {
+            **state,
+            "result": {"type": "order_track", "error": "주문 ID를 찾을 수 없습니다."},
+        }
 
     engine = get_engine()
     async for session in get_session(engine):
         order = await session.get(Order, int(order_id))
 
     if not order:
-        return {**state, "result": {"type": "order_track", "error": "주문을 찾을 수 없습니다."}}
+        return {
+            **state,
+            "result": {"type": "order_track", "error": "주문을 찾을 수 없습니다."},
+        }
 
     return {
         **state,
@@ -220,7 +253,7 @@ async def unknown_node(state: AgentState) -> AgentState:
         "result": {
             "type": "unknown",
             "message": "죄송합니다, 요청을 이해하지 못했습니다. "
-                       "상품 검색, 추천, 재고 확인 등을 도와드릴 수 있습니다.",
+            "상품 검색, 추천, 재고 확인 등을 도와드릴 수 있습니다.",
         },
     }
 
@@ -244,14 +277,13 @@ async def response_node(state: AgentState) -> AgentState:
     """Generate a natural language response from intent node result."""
     result = state.get("result", {})
     messages = state.get("messages", [])
-
     user_messages = [
         {"role": m["role"], "content": m["content"]}
         for m in messages
         if m["role"] in ("user", "assistant")
     ]
-
-    client = AsyncOpenAI()
+    settings = get_settings()
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
     response = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -265,7 +297,6 @@ async def response_node(state: AgentState) -> AgentState:
         temperature=0.7,
         max_tokens=1024,
     )
-
     answer = response.choices[0].message.content
     updated_result = {**result, "answer": answer}
     return {**state, "result": updated_result}
