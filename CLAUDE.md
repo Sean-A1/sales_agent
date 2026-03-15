@@ -2,40 +2,57 @@
 
 ## Project
 
-langchain_agent — PDF RAG pipeline + PDF convert pipeline.
-Korean financial RFP documents. WSL + Poetry + Python 3.11.
+B2C General Sales Agent — AI 기반 범용 판매 에이전트.
+고객 대화를 통해 상품 검색/추천, 재고·가격 확인, 주문 연동까지 처리.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Agent Orchestration | LangGraph |
+| Knowledge Graph | Neo4j |
+| Vector Store | Qdrant |
+| Database | PostgreSQL (SQLModel) |
+| API | FastAPI |
+| LLM | OpenAI |
+
+## Features
+
+- 상품 검색 (키워드, 카테고리, 필터)
+- 상품 추천 (사용자 선호도, 구매 이력 기반)
+- 상품 상세 응답 (스펙, 비교)
+- 대화 맥락 유지 (멀티턴 컨텍스트)
+- 재고/가격 확인 (실시간 조회)
+- 리뷰 기반 응답 (RAG)
+- 장바구니/주문 연동
+- 주문 추적
 
 ## Repo Map
 
 ```
 main.py                  # entrypoint
-src/app/cli.py           # CLI (Typer + Rich)
-src/rag/                 # RAG: ingest, query, loaders, prompts, config, utils
-src/convert/             # Convert: parse → clean → metadata → export
-  parse.py               # LlamaParse PDF → raw markdown
-  clean.py               # markdown cleanup
-  metadata.py            # LLM sandwich → YAML frontmatter
-  export.py              # md/html/xml/json export
-  pipeline.py            # orchestrator
-  profiles/              # base.py, financial_rfp.py
-tests/                   # test_smoke, test_convert_clean/metadata/export
-data/input/pdf/          # source PDFs
-data/export/             # timestamped output dirs
-memory/                  # legacy project docs (MEMORY.md, WORKFLOW.md, etc.)
+src/
+  agent/                 # LangGraph agent nodes & tools
+  api/                   # FastAPI routes
+  graph/                 # LangGraph graph definitions & state
+  rag/                   # Qdrant RAG pipeline
+  db/                    # PostgreSQL & Neo4j connections
+  models/                # SQLModel & Pydantic schemas
+  core/                  # config, logging, shared utilities
+tests/                   # pytest test suites
+docker-compose.yml       # PostgreSQL, Qdrant
 ```
 
 ## Commands
 
 ```bash
-# Run
-poetry run python main.py ingest
-poetry run python main.py query "질문"
-poetry run python main.py convert --input-dir data/input/pdf
+# Run API server
+poetry run uvicorn src.api.main:app --reload
 
 # Test
 poetry run pytest tests/ -v
 
-# Lint check (before commit)
+# Lint check
 poetry run python -c "import src; print('import ok')"
 ```
 
@@ -43,48 +60,27 @@ poetry run python -c "import src; print('import ok')"
 
 NEVER work directly on `main`. Always:
 1. `git checkout main && git pull`
-2. `git checkout -b claude/<task-name>`
+2. `git checkout -b sean/<task>` or `git checkout -b claude/<task>`
 3. Work → commit → review diff
-4. User merges to main
+4. Merge to main via PR
 
 ## Key Rules
 
 - **Minimal edits only.** Small, focused changes. No broad refactors unless explicitly requested.
 - **No secrets in commits.** Never commit `.env`, tokens, or credentials.
-- **API separation.** `RAG_OPENAI_API_KEY` is for app runtime (RAG/eval), NOT for agent CLI login.
-- **LlamaParse key.** Use `LLAMA_CLOUD_API_KEY` (standardized). Old `LLAMAPARSE_API_KEY` had typo issues.
-- **Poetry.** Always use `poetry run` prefix. Python 3.11 required.
-- **Korean context.** PDFs and metadata are Korean financial RFPs. Keep Korean text handling in mind.
+- **Poetry.** Always use `poetry run` prefix. Python 3.11+.
+- **Korean context.** 사용자 인터페이스와 상품 데이터는 한국어 기반.
 
 ## Validation Before Commit
 
-Run the smallest relevant check first:
 1. Import check: `poetry run python -c "import src"`
-2. Targeted test: `poetry run pytest tests/test_convert_clean.py -v`
+2. Targeted test: `poetry run pytest tests/<target> -v`
 3. Full suite: `poetry run pytest tests/ -v`
 4. Review diff: `git diff --stat`
 
-## Current Architecture Status
-
-### RAG pipeline (stable)
-LlamaParse → chunking → Chroma embeddings → LLM query (optional)
-
-### Convert pipeline (active development)
-Phase 1-4 complete. Known limitation: html/xml/json inherit fidelity issues from md.
-**Next priority:** parse/clean quality (title structure, table fidelity, heading levels).
-
 ## What NOT to Do
 
-- Don't rename `RAG_OPENAI_API_KEY` without explicit instruction
 - Don't introduce unrelated dependency churn
 - Don't make formatting-only changes unless requested
 - Don't modify `.env` policy without explicit instruction
 - Don't push to `main` directly
-
-## Reference Docs
-
-For deeper context, read these files as needed:
-- `memory/MEMORY.md` — full project history and operating principles
-- `memory/WORKFLOW.md` — detailed git workflow steps
-- `memory/CLAUDE.md` — legacy Claude-specific notes
-- `README.md` — user-facing setup and usage docs
