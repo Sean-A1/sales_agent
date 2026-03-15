@@ -4,10 +4,15 @@ from __future__ import annotations
 
 from langchain_openai import OpenAIEmbeddings
 
+from src.core import get_settings
+
 
 def get_embedder() -> OpenAIEmbeddings:
-    """OpenAIEmbeddings 인스턴스를 반환한다."""
-    return OpenAIEmbeddings(model="text-embedding-3-small")
+    settings = get_settings()
+    return OpenAIEmbeddings(
+        model="text-embedding-3-small",
+        api_key=settings.OPENAI_API_KEY,
+    )
 
 
 def embed_text(embedder: OpenAIEmbeddings, text: str) -> list[float]:
