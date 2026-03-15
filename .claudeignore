@@ -12,13 +12,9 @@ build/
 htmlcov/
 .coverage
 
-# ── Data: binary assets (PDFs, vector index, DB) ─────────────────────────────
-data/index/
-data/pdf_temp/
+# ── Data / Storage ────────────────────────────────────────────────────────────
 *.sqlite3
-
-# ── Data: pipeline output (regenerable) ──────────────────────────────────────
-data/export/
+data/
 
 # ── Secrets / Environment ────────────────────────────────────────────────────
 .env
@@ -38,7 +34,5 @@ Thumbs.db
 logs/
 *.log
 
-# ── Legacy AI agent notes (not needed for code work) ─────────────────────────
-# memory/CODEX.md
-# memory/GEMINI.md
-# memory/CLAUDE.md
+# ── Docker ───────────────────────────────────────────────────────────────────
+docker-compose.override.yml
