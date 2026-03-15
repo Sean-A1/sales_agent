@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.db import create_tables
 
-from .routes import cart, chat, orders, products
+from .routes import cart, chat, orders, products, ui
 
 
 @asynccontextmanager
@@ -27,6 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(ui.router, tags=["ui"])
 app.include_router(chat.router, tags=["chat"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(cart.router, prefix="/cart", tags=["cart"])
