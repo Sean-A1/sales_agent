@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.agent.state import AgentState
-from src.agent.intent import classify_intent, INTENTS, SYSTEM_PROMPT
+from src.agent.intent import classify_intent, INTENTS, SYSTEM_PROMPT, _CONTEXT_KEYS
 from src.agent.nodes import (
     search_node,
     recommend_node,
@@ -62,29 +62,34 @@ class TestClassifyIntent:
         mock_openai_cls.return_value = mock_client
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "search"
+        mock_response.choices[0].message.content = '{"intent": "search", "query": "노트북"}'
         mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         state = _make_state(messages=[{"role": "user", "content": "노트북 찾아줘"}])
         result = await classify_intent(state)
 
         assert result["intent"] == "search"
+        assert result["context"]["query"] == "노트북"
         mock_client.chat.completions.create.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.agent.intent.AsyncOpenAI")
-    async def test_classify_recommend(self, mock_openai_cls):
+    async def test_classify_recommend_with_category(self, mock_openai_cls):
         mock_client = AsyncMock()
         mock_openai_cls.return_value = mock_client
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "recommend"
+        mock_response.choices[0].message.content = (
+            '{"intent": "recommend", "category": "가전/디지털", "query": "청소기"}'
+        )
         mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
-        state = _make_state(messages=[{"role": "user", "content": "추천해줘"}])
+        state = _make_state(messages=[{"role": "user", "content": "청소기 추천해줘"}])
         result = await classify_intent(state)
 
         assert result["intent"] == "recommend"
+        assert result["context"]["category"] == "가전/디지털"
+        assert result["context"]["query"] == "청소기"
 
     @pytest.mark.asyncio
     @patch("src.agent.intent.AsyncOpenAI")
@@ -93,13 +98,49 @@ class TestClassifyIntent:
         mock_openai_cls.return_value = mock_client
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "invalid_intent"
+        mock_response.choices[0].message.content = '{"intent": "invalid_intent"}'
         mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
         state = _make_state()
         result = await classify_intent(state)
 
         assert result["intent"] == "unknown"
+        assert result["context"] == {}
+
+    @pytest.mark.asyncio
+    @patch("src.agent.intent.AsyncOpenAI")
+    async def test_classify_json_parse_error(self, mock_openai_cls):
+        mock_client = AsyncMock()
+        mock_openai_cls.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "not json"
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        state = _make_state()
+        result = await classify_intent(state)
+
+        assert result["intent"] == "unknown"
+        assert result["context"] == {}
+
+    @pytest.mark.asyncio
+    @patch("src.agent.intent.AsyncOpenAI")
+    async def test_context_only_includes_known_keys(self, mock_openai_cls):
+        mock_client = AsyncMock()
+        mock_openai_cls.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = (
+            '{"intent": "detail", "product_id": 42, "extra_field": "ignored"}'
+        )
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        state = _make_state(messages=[{"role": "user", "content": "상품 42번 상세 보여줘"}])
+        result = await classify_intent(state)
+
+        assert result["intent"] == "detail"
+        assert result["context"] == {"product_id": 42}
+        assert "extra_field" not in result["context"]
 
     @pytest.mark.asyncio
     async def test_classify_no_user_message(self):
@@ -107,6 +148,7 @@ class TestClassifyIntent:
         result = await classify_intent(state)
 
         assert result["intent"] == "unknown"
+        assert result["context"] == {}
 
     def test_intents_list(self):
         assert "search" in INTENTS
@@ -117,6 +159,12 @@ class TestClassifyIntent:
     def test_system_prompt_contains_intents(self):
         for intent in INTENTS:
             assert intent in SYSTEM_PROMPT
+
+    def test_context_keys_defined(self):
+        assert "category" in _CONTEXT_KEYS
+        assert "query" in _CONTEXT_KEYS
+        assert "product_id" in _CONTEXT_KEYS
+        assert "order_id" in _CONTEXT_KEYS
 
 
 # ---------------------------------------------------------------------------
