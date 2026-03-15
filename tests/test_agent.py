@@ -193,7 +193,10 @@ class TestSearchNode:
 
         mock_get_session.side_effect = fake_get_session
 
-        state = _make_state(messages=[{"role": "user", "content": "노트북"}])
+        state = _make_state(
+            messages=[{"role": "user", "content": "노트북 검색해줘"}],
+            context={"query": "노트북"},
+        )
         result = await search_node(state)
 
         assert result["result"]["type"] == "search"

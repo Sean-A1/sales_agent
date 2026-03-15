@@ -14,8 +14,8 @@ logger = get_logger(__name__)
 
 
 async def search_node(state: AgentState) -> AgentState:
-    """Search products by keyword from the last user message."""
-    query = _last_user_message(state)
+    """Search products by keyword from context query or last user message."""
+    query = state.get("context", {}).get("query") or _last_user_message(state)
     engine = get_engine()
     async for session in get_session(engine):
         stmt = select(Product).where(

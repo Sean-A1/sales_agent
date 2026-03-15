@@ -101,11 +101,15 @@ class TestEmbeddings:
 
     @patch("src.rag.embeddings.OpenAIEmbeddings")
     def test_get_embedder(self, mock_cls):
+        from src.core import get_settings
         from src.rag.embeddings import get_embedder
 
         get_embedder()
 
-        mock_cls.assert_called_once_with(model="text-embedding-3-small")
+        mock_cls.assert_called_once_with(
+            model="text-embedding-3-small",
+            api_key=get_settings().OPENAI_API_KEY,
+        )
 
     def test_embed_text(self, mock_embedder):
         from src.rag.embeddings import embed_text
