@@ -200,26 +200,30 @@ class TestSearch:
     def test_search_reviews(self, mock_qdrant, mock_embedder):
         from src.rag.search import search_reviews
 
-        mock_qdrant.search.return_value = [
+        qp_result = MagicMock()
+        qp_result.points = [
             self._make_hit({"content": "좋아요", "type": "review"}, 0.95),
             self._make_hit({"content": "괜찮아요", "type": "review"}, 0.85),
         ]
+        mock_qdrant.query_points.return_value = qp_result
 
         results = search_reviews(mock_qdrant, mock_embedder, "이 상품 어때요?")
 
         assert len(results) == 2
         assert results[0]["score"] == 0.95
         assert results[0]["payload"]["content"] == "좋아요"
-        mock_qdrant.search.assert_called_once()
+        mock_qdrant.query_points.assert_called_once()
 
     def test_search_reviews_with_product_id(self, mock_qdrant, mock_embedder):
         from src.rag.search import search_reviews
 
-        mock_qdrant.search.return_value = []
+        qp_result = MagicMock()
+        qp_result.points = []
+        mock_qdrant.query_points.return_value = qp_result
 
         search_reviews(mock_qdrant, mock_embedder, "배터리", product_id=1, limit=3)
 
-        call_kwargs = mock_qdrant.search.call_args[1]
+        call_kwargs = mock_qdrant.query_points.call_args[1]
         assert call_kwargs["limit"] == 3
         filter_obj = call_kwargs["query_filter"]
         assert len(filter_obj.must) == 2  # type + product_id
@@ -227,22 +231,26 @@ class TestSearch:
     def test_search_reviews_no_product_id(self, mock_qdrant, mock_embedder):
         from src.rag.search import search_reviews
 
-        mock_qdrant.search.return_value = []
+        qp_result = MagicMock()
+        qp_result.points = []
+        mock_qdrant.query_points.return_value = qp_result
 
         search_reviews(mock_qdrant, mock_embedder, "배터리")
 
-        call_kwargs = mock_qdrant.search.call_args[1]
+        call_kwargs = mock_qdrant.query_points.call_args[1]
         filter_obj = call_kwargs["query_filter"]
         assert len(filter_obj.must) == 1  # type only
 
     def test_search_qna(self, mock_qdrant, mock_embedder):
         from src.rag.search import search_qna
 
-        mock_qdrant.search.return_value = [
+        qp_result = MagicMock()
+        qp_result.points = [
             self._make_hit(
                 {"question": "무게?", "answer": "200g", "type": "qna"}, 0.9,
             ),
         ]
+        mock_qdrant.query_points.return_value = qp_result
 
         results = search_qna(mock_qdrant, mock_embedder, "무게가 얼마나 되나요?")
 
@@ -252,11 +260,13 @@ class TestSearch:
     def test_search_qna_with_product_id(self, mock_qdrant, mock_embedder):
         from src.rag.search import search_qna
 
-        mock_qdrant.search.return_value = []
+        qp_result = MagicMock()
+        qp_result.points = []
+        mock_qdrant.query_points.return_value = qp_result
 
         search_qna(mock_qdrant, mock_embedder, "색상?", product_id=2)
 
-        call_kwargs = mock_qdrant.search.call_args[1]
+        call_kwargs = mock_qdrant.query_points.call_args[1]
         filter_obj = call_kwargs["query_filter"]
         assert len(filter_obj.must) == 2
 

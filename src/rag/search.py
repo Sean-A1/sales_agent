@@ -29,12 +29,12 @@ def search_reviews(
 ) -> list[dict]:
     """리뷰 시맨틱 검색. payload + score 반환."""
     vector = embed_text(embedder, query)
-    results = client.search(
+    results = client.query_points(
         collection_name=COLLECTION_NAME,
-        query_vector=vector,
+        query=vector,
         query_filter=_build_filter(product_id, "review"),
         limit=limit,
-    )
+    ).points
     return [{"payload": hit.payload, "score": hit.score} for hit in results]
 
 
@@ -47,10 +47,10 @@ def search_qna(
 ) -> list[dict]:
     """Q&A 시맨틱 검색. payload + score 반환."""
     vector = embed_text(embedder, query)
-    results = client.search(
+    results = client.query_points(
         collection_name=COLLECTION_NAME,
-        query_vector=vector,
+        query=vector,
         query_filter=_build_filter(product_id, "qna"),
         limit=limit,
-    )
+    ).points
     return [{"payload": hit.payload, "score": hit.score} for hit in results]
