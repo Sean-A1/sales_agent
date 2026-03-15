@@ -1,5 +1,8 @@
 """Agent node functions for each intent."""
 
+import json
+
+from openai import AsyncOpenAI
 from sqlmodel import select
 
 from src.core import get_logger
@@ -220,6 +223,52 @@ async def unknown_node(state: AgentState) -> AgentState:
                        "상품 검색, 추천, 재고 확인 등을 도와드릴 수 있습니다.",
         },
     }
+
+
+_RESPONSE_SYSTEM_PROMPT = """\
+당신은 신세계 라이브 홈쇼핑의 AI 판매 상담사입니다.
+고객에게 친절하고 전문적인 톤으로 자연스러운 한국어 응답을 생성하세요.
+
+규칙:
+- 상품 추천/검색 결과: 상품명, 가격, 주요 특징을 간결하게 안내
+- 리뷰 관련: 리뷰 내용을 요약하여 전달
+- 재고/가격 확인: 재고 상태와 가격을 명확하게 안내
+- 주문 추적: 주문 상태를 명확하게 안내
+- 장바구니: 추가/목록 결과를 안내
+- 항상 존댓말 사용
+- 불필요하게 길지 않게, 핵심 정보 중심으로 답변
+"""
+
+
+async def response_node(state: AgentState) -> AgentState:
+    """Generate a natural language response from intent node result."""
+    result = state.get("result", {})
+    messages = state.get("messages", [])
+
+    user_messages = [
+        {"role": m["role"], "content": m["content"]}
+        for m in messages
+        if m["role"] in ("user", "assistant")
+    ]
+
+    client = AsyncOpenAI()
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": _RESPONSE_SYSTEM_PROMPT},
+            *user_messages,
+            {
+                "role": "system",
+                "content": f"아래는 시스템 조회 결과입니다. 이 데이터를 바탕으로 고객에게 응답하세요.\n\n{json.dumps(result, ensure_ascii=False, default=str)}",
+            },
+        ],
+        temperature=0.7,
+        max_tokens=1024,
+    )
+
+    answer = response.choices[0].message.content
+    updated_result = {**result, "answer": answer}
+    return {**state, "result": updated_result}
 
 
 def _last_user_message(state: AgentState) -> str:

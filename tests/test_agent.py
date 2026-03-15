@@ -15,6 +15,7 @@ from src.agent.nodes import (
     cart_node,
     order_track_node,
     unknown_node,
+    response_node,
     _last_user_message,
 )
 from src.agent.graph import build_graph, _route_by_intent, INTENT_TO_NODE
@@ -422,6 +423,65 @@ class TestUnknownNode:
         assert "message" in result["result"]
 
 
+class TestResponseNode:
+    @pytest.mark.asyncio
+    @patch("src.agent.nodes.AsyncOpenAI")
+    async def test_response_generates_answer(self, mock_openai_cls):
+        mock_client = AsyncMock()
+        mock_openai_cls.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "맥북 프로를 추천드립니다! 가격은 200만원입니다."
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        state = _make_state(
+            messages=[{"role": "user", "content": "노트북 추천해줘"}],
+            result={"type": "recommend", "products": [
+                {"name": "맥북 프로", "price": 2_000_000, "category": "노트북"}
+            ]},
+        )
+        result = await response_node(state)
+
+        assert "answer" in result["result"]
+        assert result["result"]["answer"] == "맥북 프로를 추천드립니다! 가격은 200만원입니다."
+        assert result["result"]["type"] == "recommend"
+        mock_client.chat.completions.create.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.agent.nodes.AsyncOpenAI")
+    async def test_response_preserves_existing_result(self, mock_openai_cls):
+        mock_client = AsyncMock()
+        mock_openai_cls.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "재고 20개 남았습니다."
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        state = _make_state(
+            result={"type": "stock", "stock": 20, "in_stock": True},
+        )
+        result = await response_node(state)
+
+        assert result["result"]["type"] == "stock"
+        assert result["result"]["stock"] == 20
+        assert result["result"]["answer"] == "재고 20개 남았습니다."
+
+    @pytest.mark.asyncio
+    @patch("src.agent.nodes.AsyncOpenAI")
+    async def test_response_with_empty_result(self, mock_openai_cls):
+        mock_client = AsyncMock()
+        mock_openai_cls.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "무엇을 도와드릴까요?"
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        state = _make_state(result={})
+        result = await response_node(state)
+
+        assert result["result"]["answer"] == "무엇을 도와드릴까요?"
+
+
 class TestLastUserMessage:
     def test_extracts_last_user_msg(self):
         state = _make_state(messages=[
@@ -463,6 +523,7 @@ class TestBuildGraph:
         expected = {
             "classify_intent", "search", "recommend", "detail",
             "stock", "review", "cart", "order_track", "unknown",
+            "response",
         }
         assert expected.issubset(node_names)
 

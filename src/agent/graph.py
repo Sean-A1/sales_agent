@@ -9,6 +9,7 @@ from .nodes import (
     detail_node,
     order_track_node,
     recommend_node,
+    response_node,
     review_node,
     search_node,
     stock_node,
@@ -50,6 +51,7 @@ def build_graph() -> CompiledGraph:
     graph.add_node("cart", cart_node)
     graph.add_node("order_track", order_track_node)
     graph.add_node("unknown", unknown_node)
+    graph.add_node("response", response_node)
 
     graph.set_entry_point("classify_intent")
 
@@ -60,6 +62,8 @@ def build_graph() -> CompiledGraph:
     )
 
     for node_name in INTENT_TO_NODE.values():
-        graph.add_edge(node_name, END)
+        graph.add_edge(node_name, "response")
+
+    graph.add_edge("response", END)
 
     return graph.compile()
